@@ -1,0 +1,44 @@
+---
+globs: *.tsx,*.ts,*.jsx,*.js
+alwaysApply: false
+---
+
+## Написание кода
+- Старайся использовать любые самые современные возможности js/ts на 2025 год. В случае если это способствует краткости и удобочитаемости кода. Например: 
+  - optional chaining
+  - nullish coalescing
+  - Iterator Helpers
+  - Новые методы объекта Set (intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf, isDisjointFrom и так далее)
+  - и так далее 
+
+
+## Performance and Optimization
+- Minimize resource usage and avoid memory leaks
+- Implement proper caching mechanisms
+- Handle asynchronous operations efficiently
+
+
+## Security and Privacy
+- Prevent XSS and injection attacks
+- Follow security best practices
+
+
+## Консоль логи
+- Если у тебя есть сомнения в выборе варианта или причине бага, то пропиши консоль логи, на основе которых ты точно смог бы решить эту проблему. И я предоставлю тебе результат их вывода.
+При этом, консоль-логи добавляй не в закомментированном, а в работающем виде. Позже я их удалю. При написании console.log помни что в браузерном терминале объекты из консоли копируются в виде строки такого вида: "{...}". Так что либо для вывода данных в виде объектов используй какой-нибудь JSON-сериализатор, либо выводи данные в виде строк.
+
+
+## Code Style Guidelines
+- Use early returns whenever possible to make the code more readable.
+- Event functions should be named with a “handle” prefix, like “handleClick” for onClick and “handleKeyDown” for onKeyDown.
+- Use descriptive variable names (e.g., isLoading, hasPermission)
+- Используй тернарные операторы (но не вложенные) вместо if-else.
+- Пиши стрелочные функции, и желательно без скобок.
+- Вместо циклов for используй, по мере возможностей, конструкции в функциональном стиле (если это не создает плохочитаемого кода). Например методы массивов, Iterator Helpers, новые методы объекта Set (intersection, union и так далее)
+
+
+## Избегание проблем
+- При создании стрелочных функций помни об их поведении с hoisting 
+
+
+use context7
