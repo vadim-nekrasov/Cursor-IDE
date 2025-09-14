@@ -19,7 +19,6 @@ alwaysApply: false
 ### 2. Технологический стек
 **Определи и опиши:**
 - Основной фреймворк/библиотеку (React, Vue, Angular, Vanilla JS)
-- Версии используемых технологий
 - Инструменты сборки и развертывания (Webpack, Vite, Parcel, Next.js и др.)
 - Языки программирования (JavaScript, TypeScript)
 - CSS-технологии (Sass, Less, CSS-in-JS, CSS Modules, Tailwind и др.)
