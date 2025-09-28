@@ -1,1 +1,7 @@
 /.idea/
+.DS_Store            # macOS
+._.DS_Store
+Thumbs.db            # Windows
+ehthumbs.db
+Desktop.ini
+**/._*
