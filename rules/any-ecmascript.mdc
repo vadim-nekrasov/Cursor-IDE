@@ -4,17 +4,22 @@ alwaysApply: false
 ---
 
 ## Написание кода
-- Старайся использовать любые самые современные возможности js/ts на 2025 год. В случае если это способствует краткости и удобочитаемости кода. Например: 
-  - optional chaining
-  - nullish coalescing
-  - Iterator Helpers
-  - Новые методы объекта Set (intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf, isDisjointFrom и так далее)
-  - и так далее 
-  
+
+- Старайся использовать любые самые современные возможности js/ts на 2025 год. В случае если это способствует краткости
+  и удобочитаемости кода. Например:
+    - optional chaining
+    - nullish coalescing
+    - Iterator Helpers
+    - Новые методы объекта Set (intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf,
+      isDisjointFrom и так далее)
+    - и так далее
+
 ### Примеры — Плохо / Хорошо
 
 #### optional chaining
+
 **Плохо**
+
 ```js
 if (user && user.profile && user.profile.address) {
   const city = user?.profile?.address?.city;
@@ -22,38 +27,46 @@ if (user && user.profile && user.profile.address) {
 ````
 
 **Хорошо**
+
 ```js
 const city = user?.profile?.address?.city ?? 'Unknown';
 ```
 
 **Плохо**
+
 ```js
 typeof maybeFn === 'function' && maybeFn();
 ```
 
 **Хорошо**
+
 ```js
 maybeFn?.();
 ```
+
 ---
 
 #### nullish coalescing
 
 **Плохо**
+
 ```js
 // 0 и '' ошибочно считаются "пустыми"
 const limit = opts.limit || 20;
 ```
 
 **Хорошо**
+
 ```js
 const limit = opts.limit ?? 20;
 ```
+
 ---
 
 #### Логические присваивания (??= ||= &&=)
 
 **Плохо**
+
 ```js
 if (cfg.retries === null || cfg.retries === undefined) {
   cfg.retries = 3;
@@ -61,16 +74,19 @@ if (cfg.retries === null || cfg.retries === undefined) {
 ```
 
 **Хорошо**
+
 ```js
 cfg.retries ??= 3;
 ```
 
 **Плохо**
+
 ```js
 connected &&= ping(); // смешивает состояние и побочные эффекты
 ```
 
 **Хорошо**
+
 ```js
 connected = connected ? ping() : false;
 ```
@@ -78,11 +94,17 @@ connected = connected ? ping() : false;
 ---
 
 #### Iterator Helpers
+
 Задача: взять первые 5 квадратов чётных чисел из потенциально бесконечного источника
 
 **Плохо**
+
 ```js
-function* naturals() { let i = 1; while (true) yield i++; }
+function* naturals() {
+  let i = 1;
+  while (true) yield i++;
+}
+
 const it = naturals();
 const out = [];
 while (out.length < 5) {
@@ -93,6 +115,7 @@ while (out.length < 5) {
 ```
 
 **Хорошо**
+
 ```js
 const out = naturals()
   .filter(n => n % 2 === 0)
@@ -104,14 +127,16 @@ const out = naturals()
 
 Задача: пропустить первые 10, взять следующие 20 записей — пагинация
 **Плохо**
+
 ```js
 // Force materialization then slice (extra memory)
 const page = 2, size = 20;
 const arr = Array.from(iterable);          // materialize whole iterable
-const pageItems = arr.slice(page*size, page*size + size);
+const pageItems = arr.slice(page * size, page * size + size);
 ```
 
 **Хорошо**
+
 ```js
 const page = 2, size = 20;
 const pageItems = Iterator.from(iterable)
@@ -122,41 +147,50 @@ const pageItems = Iterator.from(iterable)
 
 Задача: взять топ-10 по вычисляемому скору, не создавая цепочки больших массивов
 **Плохо**
+
 ```js
 const top10 = Array.from(items)
-  .map(x => ({ x, score: scoreOf(x) })) // big array #1
-  .sort((a,b) => b.score - a.score)     // in-place sort (mutates)
+  .map(x => ({x, score: scoreOf(x)})) // big array #1
+  .sort((a,
+         b) => b.score - a.score)     // in-place sort (mutates)
   .slice(0, 10)                          // array #2
   .map(v => v.x);                        // array #3
 ```
 
 **Хорошо**
+
 ```js
 const top10 = Iterator.from(items)
-  .map(x => ({ x, score: scoreOf(x) })) // lazy
+  .map(x => ({x, score: scoreOf(x)})) // lazy
   // If you must sort, convert once and only at the end:
   .toArray()
-  .toSorted((a,b) => b.score - a.score)
+  .toSorted((a,
+             b) => b.score - a.score)
   .slice(0, 10)
   .map(v => v.x);
 ```
 
-
 **Плохо**
+
 ```js
 // (массивы)** — невозможно/опасно: `Array.from` материализует всё и повиснет/сломает память.
-function* naturals() { let i = 1; while (true) yield i++; }
+function* naturals() {
+  let i = 1;
+  while (true) yield i++;
+}
+
 // ❌ Array.from(naturals()).find(...)  // will never finish / OOM
 ```
 
 **Хорошо**
+
 ```js
 const found = naturals().find(n => n % 12345 === 0); // lazy early stop
 ```
 
-
 Обработка файлов/сетевых потоков построчно (ранняя остановка)
 **Плохо**
+
 ```js
 // (массивы) — необходимо сначала собрать все строки.
 const lines = Array.from(readLines(stream));
@@ -164,110 +198,118 @@ const firstWithKey = lines.find(l => l.includes(key));
 ```
 
 **Хорошо**
+
 ```js
 // (итераторы) — читаем по мере необходимости, выходим сразу.
 const firstWithKey = readLines(stream)
   .find(l => l.includes(key));
 ```
 
-
 Окно сканирования: «пропусти N, возьми M» из потенциально огромного источника
 **Плохо**
+
 ```js
 // (массивы) — снова полная материализация и лишняя память.
 const win = Array.from(events).slice(offset, offset + limit);
 ```
 
 **Хорошо**
+
 ```js
 // (итераторы) — экономим память и время.
 const win = Iterator.from(events).drop(offset).take(limit).toArray();
 ```
 
-
 Нормализация входа: iterable/iterator/array
 **Плохо**
+
 ```js
 // ❌ Boilerplate to accept iterable OR iterator
-const toIterator = x =>
-  x && typeof x[Symbol.iterator] === 'function' ? x[Symbol.iterator]() :
-  x && typeof x.next === 'function' ? x :
-  [][Symbol.iterator]();
+const toIterator = x => x && typeof x[Symbol.iterator] === 'function' ? x[Symbol.iterator]() : x && typeof x.next === 'function' ? x : [][Symbol.iterator]();
 const it = toIterator(maybeIterable);
 ```
 
 **Хорошо**
+
 ```js
 const it = Iterator.from(maybeIterable);
 ```
-
 
 ---
 
 #### Работа с наборами уникальных элементов
 
 **Плохо**
+
 ```js
 // O(n^2) через массивы
 const common = arrA.filter(x => arrB.includes(x));
 ```
 
 **Хорошо**
+
 ```js
 const a = new Set(arrA), b = new Set(arrB);
 const common = a.intersection(b); // Set { ... }
 ```
 
 **Плохо**
+
 ```js
 // Мутируем исходник и усложняем чтение
 for (const v of b) if (a.has(v)) a.delete(v);
 ```
 
 **Хорошо**
+
 ```js
 const diff = a.difference(b); // новый Set без мутаций
 ```
 
 **Плохо**
+
 ```js
-const sym = [
-  ...a.filter(x => !b.includes(x)),
-  ...b.filter(x => !a.includes(x)),
-];
+const sym = [...a.filter(x => !b.includes(x)), ...b.filter(x => !a.includes(x)),];
 ```
 
 **Хорошо**
+
 ```js
 const sym = new Set(a).symmetricDifference(new Set(b)); // XOR of sets
 ```
 
 **Плохо**
+
 ```js
 const isSub = a.every(x => b.includes(x)); // O(n·m) and brittle with dups
 ```
 
 **Хорошо**
+
 ```js
 const isSub = new Set(a).isSubsetOf(new Set(b));
 ```
 
 **Плохо**
+
 ```js
 const isSuper = b.every(x => a.includes(x));
 ```
 
 **Хорошо**
+
 ```js
 const isSuper = new Set(a).isSupersetOf(new Set(b));
 ```
 
 **Плохо**
+
 ```js
 const disjoint = a.every(x => !b.includes(x)); // O(n·m)
 ```
 
 **Хорошо**
+
 ```js
 const disjoint = new Set(a).isDisjointFrom(new Set(b));
 ```
@@ -277,13 +319,17 @@ const disjoint = new Set(a).isDisjointFrom(new Set(b));
 #### Иммутабельные методы массивов
 
 **Плохо**
+
 ```js
-const sorted = nums.sort((a,b)=>a-b); // мутирует nums
+const sorted = nums.sort((a,
+                          b) => a - b); // мутирует nums
 ```
 
 **Хорошо**
+
 ```js
-const sorted = nums.toSorted((a,b)=>a-b); // nums неизменен
+const sorted = nums.toSorted((a,
+                              b) => a - b); // nums неизменен
 ```
 
 ---
@@ -291,12 +337,14 @@ const sorted = nums.toSorted((a,b)=>a-b); // nums неизменен
 #### Группировка элементов по какому-либо признаку
 
 **Плохо**
+
 ```js
 const groups: Record<string, any[]> = {};
 for (const u of users) (groups[u.role] = groups[u.role] || []).push(u);
 ```
 
 **Хорошо**
+
 ```js
 const byRole = Object.groupBy(users, u => u.role);
 ```
@@ -306,6 +354,7 @@ const byRole = Object.groupBy(users, u => u.role);
 #### Работа с Promise
 
 **Плохо**
+
 ```ts
 // Потеряли ссылки на resolve/reject — риск "вечных" промисов
 let holder!: Promise<string>;
@@ -317,29 +366,34 @@ let holder!: Promise<string>;
 ```
 
 **Хорошо**
+
 ```ts
 const { promise, resolve, reject } = Promise.withResolvers<string>();
 const timeout = setTimeout(() => reject(new Error('timeout')), 5000);
-doAsync().then(v => { clearTimeout(timeout); resolve(v); });
+doAsync().then(v => {
+  clearTimeout(timeout);
+  resolve(v);
+});
 await promise;
 ```
 
-
 Безопасный старт цепочки вместо анти-паттерна с `new Promise(resolve => resolve(fn()))`
 **Плохо**
+
 ```js
 // If callback throws synchronously, this won't reject the outer promise
 new Promise(resolve => resolve(callback()));
 ```
 
 **Хорошо**
+
 ```js
 Promise.try(callback).then(handle).catch(report);
 ```
 
-
 Единый интерфейс для функций «может быть sync, а может async»
 **Плохо**
+
 ```js
 // боулерплейт и разный тайминг
 function runMaybe(fn) {
@@ -353,13 +407,14 @@ function runMaybe(fn) {
 ```
 
 **Хорошо**
+
 ```js
 const runMaybe = (fn) => Promise.try(fn);
 ```
 
-
 «Общий try/catch» для цепочек: заменяем смешение `try { await … } catch { … }` и `.then().catch()`
 **Плохо**
+
 ```js
 // разный стиль для sync/await и then, легко допустить дырку
 try {
@@ -371,37 +426,42 @@ try {
 ```
 
 **Хорошо**
+
 ```js
 await Promise.try(() => maybeSyncOrAsync())
   .then(doSomething)
   .catch(handle);
 ```
 
-
 Массовая обработка «сомнительных» колбэков без вложенных `try/catch`
 **Плохо**
+
 ```js
 // each might throw synchronously OR return a promise
 const results = await Promise.all(tasks.map(task => {
-  try { return task(); }
-  catch (e) { return Promise.reject(e); }
+  try {
+    return task();
+  } catch (e) {
+    return Promise.reject(e);
+  }
 }));
 ```
 
 **Хорошо**
+
 ```js
 const results = await Promise.all(tasks.map(task => Promise.try(task)));
 ```
 
-
 Универсальная «обёртка» для внешних callbacks
 **Хорошо**
+
 ```js
 // Сценарий**: пользователь передаёт в ваш API хук `onCompute`, который может быть и sync, и async, а вы хотите один путь обработки
-export const compute = (input, { onCompute } = {}) => 
-  Promise.try(() => onCompute?.(input))
-    .then(res => merge(input, res))
-    .catch(reportAndFallback);
+export const compute = (input,
+                        {onCompute} = {}) => Promise.try(() => onCompute?.(input))
+  .then(res => merge(input, res))
+  .catch(reportAndFallback);
 ```
 
 ---
@@ -409,12 +469,14 @@ export const compute = (input, { onCompute } = {}) =>
 #### Глубокое клонирование оъектов
 
 **Плохо**
+
 ```js
 // Ломает Date/Map/undefined/циклы
 const copy = JSON.parse(JSON.stringify(obj));
 ```
 
 **Хорошо**
+
 ```js
 const copy = structuredClone(obj);
 ```
@@ -424,43 +486,52 @@ const copy = structuredClone(obj);
 #### Intl (без лишних зависимостей)
 
 **Плохо**
+
 ```js
 // Неверно для локалей и больших чисел
-const price = 'RUB ' + Math.round(value*100)/100;
+const price = 'RUB ' + Math.round(value * 100) / 100;
 ```
 
 **Хорошо**
+
 ```js
-const fmt = new Intl.NumberFormat('ru-RU',{ style:'currency', currency:'RUB' });
+const fmt = new Intl.NumberFormat('ru-RU', {style: 'currency', currency: 'RUB'});
 const price = fmt.format(value);
 ```
 
 ## Performance and Optimization
+
 - Minimize resource usage and avoid memory leaks
 - Implement proper caching mechanisms
 - Handle asynchronous operations efficiently
 
-
 ## Security and Privacy
+
 - Prevent XSS and injection attacks
 - Follow security best practices
 
-
 ## Консоль логи
-- Если у тебя есть сомнения в выборе варианта или причине бага, то пропиши консоль логи, на основе которых ты точно смог бы решить эту проблему. И я предоставлю тебе результат их вывода.
-При этом, консоль-логи добавляй не в закомментированном, а в работающем виде. Позже я их удалю. При написании console.log помни что в браузерном терминале объекты из консоли копируются в виде строки такого вида: "{...}". Так что либо для вывода данных в виде объектов используй какой-нибудь JSON-сериализатор, либо выводи данные в виде строк.
 
+- Если у тебя есть сомнения в выборе варианта или причине бага, то пропиши консоль логи, на основе которых ты точно смог
+  бы решить эту проблему. И я предоставлю тебе результат их вывода.
+  При этом, консоль-логи добавляй не в закомментированном, а в работающем виде. Позже я их удалю. При написании
+  console.log помни что в браузерном терминале объекты из консоли копируются в виде строки такого вида: "{...}". Так что
+  либо для вывода данных в виде объектов используй какой-нибудь JSON-сериализатор, либо выводи данные в виде строк.
 
 ## Code Style Guidelines
+
 - Use early returns whenever possible to make the code more readable.
-- Event functions should be named with a “handle” prefix, like “handleClick” for onClick and “handleKeyDown” for onKeyDown.
+- Event functions should be named with a “handle” prefix, like “handleClick” for onClick and “handleKeyDown” for
+  onKeyDown.
 - Use descriptive variable names (e.g., isLoading, hasPermission)
 - Используй тернарные операторы (но не вложенные) вместо if-else.
 - Пиши стрелочные функции, и желательно без скобок.
-- Вместо циклов for используй, по мере возможностей, конструкции в функциональном стиле (если это не создает плохочитаемого кода). Например методы массивов, Iterator Helpers, новые методы объекта Set (intersection, union и так далее)
-
+- Вместо циклов for используй, по мере возможностей, конструкции в функциональном стиле (если это не создает
+  плохочитаемого кода). Например методы массивов, Iterator Helpers, новые методы объекта Set (intersection, union и так
+  далее)
 
 ## Избегание проблем
+
 - При создании стрелочных функций помни об их поведении с hoisting 
 
 
