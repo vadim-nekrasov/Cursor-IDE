@@ -464,4 +464,3 @@ const price = fmt.format(value);
 - При создании стрелочных функций помни об их поведении с hoisting 
 
 
-use context7

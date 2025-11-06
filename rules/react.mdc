@@ -42,4 +42,3 @@ alwaysApply: false
 ❌ Inline objects/functions without memo
 ❌ Using index as key
 
-use context7
