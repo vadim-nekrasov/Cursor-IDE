@@ -1,6 +1,5 @@
 ---
-description: final checks
-globs:
+description: Ensures all recent edits are verified for quality, stability, and best practices before task completion.
 alwaysApply: false
 ---
 
