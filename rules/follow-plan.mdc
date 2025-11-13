@@ -18,7 +18,7 @@ alwaysApply: false
   структуре текущего кода.
 - Старайся следовать наилучшим практикам Clean Code.
 - Если в ходе реализации у тебя остаются задачи проектирования, то при проектировании старайся следовать принципам
-  SOLID, DRY, а так же "Low cohesion and high coupling".
+  SOLID, DRY, а так же "High Cohesion & Low Coupling".
 - Be concise Minimize any other prose.
 - Ensure code is complete! Verify thoroughly finalised.
 - Используй самые современные возможности используемых в проекте версий фреймворков и библиотек в случае если это

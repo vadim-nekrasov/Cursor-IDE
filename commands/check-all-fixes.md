@@ -21,7 +21,7 @@
     - Если добавляешь функциональность, аналогичную уже существующей (например, редьюсер или компонент), следуй стилю и
       структуре текущего кода.
     - Старайся следовать наилучшим практикам Clean Code.
-    - При проектировании старайся следовать принципам SOLID, DRY, а так же "Low cohesion and high coupling".
+    - При проектировании старайся следовать принципам SOLID, DRY, а так же "High Cohesion & Low Coupling".
     - Be concise Minimize any other prose.
     - Ensure code is complete! Verify thoroughly finalized.
 
