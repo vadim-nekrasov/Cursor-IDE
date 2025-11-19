@@ -3,371 +3,314 @@ globs: *.tsx,*.ts,*.jsx,*.js
 alwaysApply: false
 ---
 
-## Написание кода
+# Code Style & Modern JS/TS Usage (2025)
 
-- Старайся использовать любые самые современные возможности js/ts на 2025 год. В случае если это способствует краткости
-  и удобочитаемости кода. Например:
-    - optional chaining
-    - nullish coalescing
-    - Iterator Helpers
-    - Новые методы объекта Set (intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf,
-      isDisjointFrom и так далее)
-    - и так далее
+Используй современные возможности языка **там, где это повышает читаемость и уменьшает бойлерплейт**, без ущерба для производительности.
 
-### Примеры — Плохо / Хорошо
+Под «современным JS/TS» подразумеваются, в частности:
 
-#### optional chaining
+- optional chaining, nullish coalescing, логические присваивания (??= ||= &&=);
+- Iterator Helpers (`Iterator.from`, `.map/.filter/.take/.drop/.find/.toArray` и т.д.);
+- новые методы `Set` (`intersection`, `union`, `difference`, `symmetricDifference`,
+  `isSubsetOf`, `isSupersetOf`, `isDisjointFrom` и др.);
+- иммутабельные методы массивов (`toSorted`, `toReversed`, `toSpliced` и т.п.);
+- `Object.groupBy`, `Promise.withResolvers`, `Promise.try`, `structuredClone`, `Intl.*` и т.д.
 
-**Плохо**
+## Общие предпочтения среды и стиля
+
+- **Целевая среда** — только **последний Chrome** (актуальная спецификация JS 2025).  
+  Можно смело использовать всё современное API итераторов и другие новые возможности языка.
+- **Функциональный стиль** предпочтительнее императивного, если это **не ухудшает производительность**
+  и не делает код менее понятным.
+- Там, где это возможно без ущерба, заменяй императивные циклы (`for`, `for...of`, `while`)
+  на функциональные конструкции:
+  - методы массивов (`map`, `filter`, `reduce`, `flatMap`, `some`, `every` и т.п.),
+  - Iterator Helpers,
+  - операции над `Set`.
+- Во многих случаях **итераторы предпочтительнее массивов**, особенно:
+  - при работе с потенциально большими/ленивыми источниками (генераторы, потоки, стримы);
+  - при необходимости **ранней остановки** (`find`, `take`, `drop`) без полной материализации;
+  - при реализации одноразовых проходов по данным без промежуточных больших массивов.
+- По возможности старайся формулировать логику так, чтобы **использовать `const` вместо `let`**:
+  - вместо внешних «счётчиков» и аккумуляторов с `let` используй `reduce`,
+    ленивые итераторы и чистые функции.
+
+---
+
+# Optional Chaining
+
+**Плохо / Хорошо**
 
 ```js
+// ❌ Плохо
 if (user && user.profile && user.profile.address) {
   const city = user?.profile?.address?.city;
 }
+
+// ✅ Хорошо
+const city = user?.profile?.address?.city ?? 'Unknown';
 ````
 
-**Хорошо**
-
 ```js
-const city = user?.profile?.address?.city ?? 'Unknown';
-```
-
-**Плохо**
-
-```js
+// ❌ Плохо
 typeof maybeFn === 'function' && maybeFn();
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 maybeFn?.();
 ```
 
 ---
 
-#### nullish coalescing
-
-**Плохо**
+# Nullish Coalescing (??)
 
 ```js
-// 0 и '' ошибочно считаются "пустыми"
+// ❌ Плохо — 0 и '' считаются пустыми
 const limit = opts.limit || 20;
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 const limit = opts.limit ?? 20;
 ```
 
 ---
 
-#### Логические присваивания (??= ||= &&=)
-
-**Плохо**
+# Логические присваивания (??= ||= &&=)
 
 ```js
+// ❌ Плохо
 if (cfg.retries === null || cfg.retries === undefined) {
   cfg.retries = 3;
 }
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 cfg.retries ??= 3;
 ```
 
-**Плохо**
-
 ```js
-connected &&= ping(); // смешивает состояние и побочные эффекты
-```
+// ❌ Плохо — смешение логики и побочных эффектов
+connected &&= ping();
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 connected = connected ? ping() : false;
 ```
 
 ---
 
-#### Iterator Helpers
+# Iterator Helpers
 
-Задача: взять первые 5 квадратов чётных чисел из потенциально бесконечного источника
+## Общие правила
 
-**Плохо**
+Используй Iterator Helpers, когда это даёт преимущества:
+
+* Источник — **не массив** (генераторы, ленивые коллекции, потоки), а материализация в массив не нужна.
+* Нужна **ранняя остановка** (например, `find`, `take`, `drop`) без создания больших промежуточных массивов.
+* Нужна «чистая» редукция из `Map`/`Set`/итератора в некоторую итоговую структуру за **один проход**,
+  без нескольких последовательных `.map/.filter/.slice` и т.п.
+* При этом, если у коллекции уже есть **простой и читаемый метод** (например, `map`, `filter` у массива),
+  не стоит заменять его на итератор только ради итератора.
+
+Не оборачивай сущность в `Iterator.from()`, если она **уже является итератором** (объект с `next()` для одноразового прохода): это создаёт лишний слой без пользы.
+Используй `Iterator.from()` в первую очередь для нормализации **итерируемых** источников (массива, Set, Map, генератора и т.п.), а не уже готовых итераторов.
+
+### Нормализация входа
 
 ```js
-function* naturals() {
-  let i = 1;
-  while (true) yield i++;
-}
+// ❌ Плохо — самописный конструктор итераторов
+const toIterator = x =>
+  x && typeof x[Symbol.iterator] === 'function'
+    ? x[Symbol.iterator]()
+    : x && typeof x.next === 'function'
+      ? x
+      : [][Symbol.iterator]();
 
+// ✅ Хорошо — единый путь
+const it = Iterator.from(maybeIterableOrIterator);
+```
+
+## Фильтрация, маппинг и ограничение
+
+```js
+// ❌ Плохо — ручные циклы
+function* naturals() { let i = 1; while (true) yield i++; }
 const it = naturals();
 const out = [];
 while (out.length < 5) {
   const n = it.next().value;
   if (n % 2 === 0) out.push(n * n);
 }
-// out -> [4, 16, 36, 64, 100]
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо — лениво, читаемо
 const out = naturals()
   .filter(n => n % 2 === 0)
   .map(n => n * n)
   .take(5)
   .toArray();
-// No manual counters; lazy and readable
 ```
 
-Задача: пропустить первые 10, взять следующие 20 записей — пагинация
-**Плохо**
+## Пагинация без лишних массивов
 
 ```js
-// Force materialization then slice (extra memory)
-const page = 2, size = 20;
-const arr = Array.from(iterable);          // materialize whole iterable
+// ❌ Плохо — материализация целого массива
+const arr = Array.from(iterable);
 const pageItems = arr.slice(page * size, page * size + size);
-```
 
-**Хорошо**
-
-```js
-const page = 2, size = 20;
+// ✅ Хорошо
 const pageItems = Iterator.from(iterable)
   .drop(page * size)
   .take(size)
-  .toArray(); // lazy skip+take, no big intermediate arrays
+  .toArray();
 ```
 
-Задача: взять топ-10 по вычисляемому скору, не создавая цепочки больших массивов
-**Плохо**
+## Окно: «пропусти N, возьми M» из большого источника
 
 ```js
+// ❌ Плохо — полная материализация
+const win = Array.from(events).slice(offset, offset + limit);
+
+// ✅ Хорошо — ленивое окно
+const win = Iterator.from(events)
+  .drop(offset)
+  .take(limit)
+  .toArray();
+```
+
+## Топ-N
+
+```js
+// ❌ Плохо — массивы и мутации
 const top10 = Array.from(items)
-  .map(x => ({x, score: scoreOf(x)})) // big array #1
-  .sort((a,
-         b) => b.score - a.score)     // in-place sort (mutates)
-  .slice(0, 10)                          // array #2
-  .map(v => v.x);                        // array #3
-```
+  .map(x => ({ x, score: scoreOf(x) }))
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 10)
+  .map(v => v.x);
 
-**Хорошо**
-
-```js
+// ✅ Хорошо — лениво, только финальная материализация
 const top10 = Iterator.from(items)
-  .map(x => ({x, score: scoreOf(x)})) // lazy
-  // If you must sort, convert once and only at the end:
+  .map(x => ({ x, score: scoreOf(x) }))
   .toArray()
-  .toSorted((a,
-             b) => b.score - a.score)
+  .toSorted((a, b) => b.score - a.score)
   .slice(0, 10)
   .map(v => v.x);
 ```
 
-**Плохо**
+## Ранняя остановка / «бесконечные» источники
 
 ```js
-// (массивы)** — невозможно/опасно: `Array.from` материализует всё и повиснет/сломает память.
-function* naturals() {
-  let i = 1;
-  while (true) yield i++;
-}
+// ❌ Плохо — зависание / OOM
+Array.from(naturals()).find(...);
 
-// ❌ Array.from(naturals()).find(...)  // will never finish / OOM
+// ✅ Хорошо
+const found = naturals().find(n => n % 12345 === 0);
 ```
 
-**Хорошо**
+---
+
+# Работа с файлами и потоками
 
 ```js
-const found = naturals().find(n => n % 12345 === 0); // lazy early stop
-```
-
-Обработка файлов/сетевых потоков построчно (ранняя остановка)
-**Плохо**
-
-```js
-// (массивы) — необходимо сначала собрать все строки.
+// ❌ Плохо — сначала собрать всё
 const lines = Array.from(readLines(stream));
-const firstWithKey = lines.find(l => l.includes(key));
-```
+const first = lines.find(l => l.includes(key));
 
-**Хорошо**
-
-```js
-// (итераторы) — читаем по мере необходимости, выходим сразу.
-const firstWithKey = readLines(stream)
-  .find(l => l.includes(key));
-```
-
-Окно сканирования: «пропусти N, возьми M» из потенциально огромного источника
-**Плохо**
-
-```js
-// (массивы) — снова полная материализация и лишняя память.
-const win = Array.from(events).slice(offset, offset + limit);
-```
-
-**Хорошо**
-
-```js
-// (итераторы) — экономим память и время.
-const win = Iterator.from(events).drop(offset).take(limit).toArray();
-```
-
-Нормализация входа: iterable/iterator/array
-**Плохо**
-
-```js
-// ❌ Boilerplate to accept iterable OR iterator
-const toIterator = x => x && typeof x[Symbol.iterator] === 'function' ? x[Symbol.iterator]() : x && typeof x.next === 'function' ? x : [][Symbol.iterator]();
-const it = toIterator(maybeIterable);
-```
-
-**Хорошо**
-
-```js
-const it = Iterator.from(maybeIterable);
+// ✅ Хорошо — читаем по мере необходимости
+const first = readLines(stream).find(l => l.includes(key));
 ```
 
 ---
 
-#### Работа с наборами уникальных элементов
-
-**Плохо**
+# Set Operations (intersection / union / difference / symmetricDifference / isSubsetOf ...)
 
 ```js
-// O(n^2) через массивы
+// ❌ Плохо — O(n²)
 const common = arrA.filter(x => arrB.includes(x));
+
+// ✅ Хорошо
+const common = new Set(arrA).intersection(new Set(arrB));
 ```
 
-**Хорошо**
-
 ```js
-const a = new Set(arrA), b = new Set(arrB);
-const common = a.intersection(b); // Set { ... }
-```
-
-**Плохо**
-
-```js
-// Мутируем исходник и усложняем чтение
+// ❌ Плохо — мутации
 for (const v of b) if (a.has(v)) a.delete(v);
+
+// ✅ Хорошо
+const diff = new Set(a).difference(new Set(b));
 ```
 
-**Хорошо**
-
 ```js
-const diff = a.difference(b); // новый Set без мутаций
+// ❌ Плохо — ручной XOR через массивы
+const sym = [
+  ...arrA.filter(x => !arrB.includes(x)),
+  ...arrB.filter(x => !arrA.includes(x)),
+];
+
+// ✅ Хорошо
+const sym = new Set(arrA).symmetricDifference(new Set(arrB));
 ```
 
-**Плохо**
-
 ```js
-const sym = [...a.filter(x => !b.includes(x)), ...b.filter(x => !a.includes(x)),];
+// ❌ Плохо — O(n·m) и проблемы с дубликатами
+const isSub = arrA.every(x => arrB.includes(x));
+
+// ✅ Хорошо
+const isSub = new Set(arrA).isSubsetOf(new Set(arrB));
 ```
 
-**Хорошо**
-
 ```js
-const sym = new Set(a).symmetricDifference(new Set(b)); // XOR of sets
+// ❌ Плохо
+const isSuper = arrB.every(x => arrA.includes(x));
+
+// ✅ Хорошо
+const isSuper = new Set(arrA).isSupersetOf(new Set(arrB));
 ```
 
-**Плохо**
-
 ```js
-const isSub = a.every(x => b.includes(x)); // O(n·m) and brittle with dups
-```
+// ❌ Плохо
+const disjoint = arrA.every(x => !arrB.includes(x));
 
-**Хорошо**
-
-```js
-const isSub = new Set(a).isSubsetOf(new Set(b));
-```
-
-**Плохо**
-
-```js
-const isSuper = b.every(x => a.includes(x));
-```
-
-**Хорошо**
-
-```js
-const isSuper = new Set(a).isSupersetOf(new Set(b));
-```
-
-**Плохо**
-
-```js
-const disjoint = a.every(x => !b.includes(x)); // O(n·m)
-```
-
-**Хорошо**
-
-```js
-const disjoint = new Set(a).isDisjointFrom(new Set(b));
+// ✅ Хорошо
+const disjoint = new Set(arrA).isDisjointFrom(new Set(arrB));
 ```
 
 ---
 
-#### Иммутабельные методы массивов
-
-**Плохо**
+# Иммутабельные методы массивов
 
 ```js
-const sorted = nums.sort((a,
-                          b) => a - b); // мутирует nums
-```
+// ❌ Плохо — мутирует
+nums.sort((a, b) => a - b);
 
-**Хорошо**
-
-```js
-const sorted = nums.toSorted((a,
-                              b) => a - b); // nums неизменен
+// ✅ Хорошо
+const sorted = nums.toSorted((a, b) => a - b);
 ```
 
 ---
 
-#### Группировка элементов по какому-либо признаку
-
-**Плохо**
+# Object.groupBy
 
 ```js
-const groups: Record<string, any[]> = {};
-for (const u of users) (groups[u.role] = groups[u.role] || []).push(u);
-```
+// ❌ Плохо
+const groups = {};
+for (const u of users) (groups[u.role] ??= []).push(u);
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 const byRole = Object.groupBy(users, u => u.role);
 ```
 
 ---
 
-#### Работа с Promise
+# Работа с Promise / Error Handling
 
-**Плохо**
+## Promise.withResolvers
 
 ```ts
-// Потеряли ссылки на resolve/reject — риск "вечных" промисов
+// ❌ Плохо — потерян reject
 let holder!: Promise<string>;
 {
   const { promise, resolve } = Promise.withResolvers<string>();
   holder = promise;
   setTimeout(() => resolve('done'), 100);
 }
-```
 
-**Хорошо**
-
-```ts
+// ✅ Хорошо
 const { promise, resolve, reject } = Promise.withResolvers<string>();
 const timeout = setTimeout(() => reject(new Error('timeout')), 5000);
 doAsync().then(v => {
@@ -377,161 +320,174 @@ doAsync().then(v => {
 await promise;
 ```
 
-Безопасный старт цепочки вместо анти-паттерна с `new Promise(resolve => resolve(fn()))`
-**Плохо**
+## Promise.try
 
 ```js
-// If callback throws synchronously, this won't reject the outer promise
+// ❌ Плохо — sync ошибка не превращается в reject
 new Promise(resolve => resolve(callback()));
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 Promise.try(callback).then(handle).catch(report);
 ```
 
-Единый интерфейс для функций «может быть sync, а может async»
-**Плохо**
+## Унификация sync/async
 
 ```js
-// боулерплейт и разный тайминг
+// ❌ Плохо
 function runMaybe(fn) {
   try {
-    const r = fn();                     // might return a value or a promise
-    return Promise.resolve(r);          // still need try/catch to catch sync throw
+    const r = fn();
+    return Promise.resolve(r);
   } catch (e) {
     return Promise.reject(e);
   }
 }
+
+// ✅ Хорошо
+const runMaybe = fn => Promise.try(fn);
 ```
 
-**Хорошо**
+## Единый try/catch-поток
 
 ```js
-const runMaybe = (fn) => Promise.try(fn);
-```
-
-«Общий try/catch» для цепочек: заменяем смешение `try { await … } catch { … }` и `.then().catch()`
-**Плохо**
-
-```js
-// разный стиль для sync/await и then, легко допустить дырку
+// ❌ Плохо — смешанный стиль
 try {
   const data = await maybeSyncOrAsync();
   return doSomething(data);
 } catch (e) {
   return handle(e);
 }
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 await Promise.try(() => maybeSyncOrAsync())
   .then(doSomething)
   .catch(handle);
 ```
 
-Массовая обработка «сомнительных» колбэков без вложенных `try/catch`
-**Плохо**
+## Массовая обработка «сомнительных» колбэков
 
 ```js
-// each might throw synchronously OR return a promise
-const results = await Promise.all(tasks.map(task => {
-  try {
-    return task();
-  } catch (e) {
-    return Promise.reject(e);
-  }
-}));
+// ❌ Плохо
+const results = await Promise.all(
+  tasks.map(task => {
+    try {
+      return task();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }),
+);
+
+// ✅ Хорошо
+const results = await Promise.all(
+  tasks.map(task => Promise.try(task)),
+);
 ```
 
-**Хорошо**
+## Универсальная обёртка для внешних callbacks
 
 ```js
-const results = await Promise.all(tasks.map(task => Promise.try(task)));
-```
-
-Универсальная «обёртка» для внешних callbacks
-**Хорошо**
-
-```js
-// Сценарий**: пользователь передаёт в ваш API хук `onCompute`, который может быть и sync, и async, а вы хотите один путь обработки
-export const compute = (input,
-                        {onCompute} = {}) => Promise.try(() => onCompute?.(input))
-  .then(res => merge(input, res))
-  .catch(reportAndFallback);
+// ✅ Хорошо — единый интерфейс для sync/async-хуков
+export const compute = (input, { onCompute } = {}) =>
+  Promise.try(() => onCompute?.(input))
+    .then(res => merge(input, res))
+    .catch(reportAndFallback);
 ```
 
 ---
 
-#### Глубокое клонирование оъектов
-
-**Плохо**
+# Deep Clone
 
 ```js
-// Ломает Date/Map/undefined/циклы
+// ❌ Плохо — ломает Date/Map/циклы
 const copy = JSON.parse(JSON.stringify(obj));
-```
 
-**Хорошо**
-
-```js
+// ✅ Хорошо
 const copy = structuredClone(obj);
 ```
 
 ---
 
-#### Intl (без лишних зависимостей)
-
-**Плохо**
+# Intl API
 
 ```js
-// Неверно для локалей и больших чисел
+// ❌ Плохо
 const price = 'RUB ' + Math.round(value * 100) / 100;
-```
 
-**Хорошо**
-
-```js
-const fmt = new Intl.NumberFormat('ru-RU', {style: 'currency', currency: 'RUB'});
+// ✅ Хорошо
+const fmt = new Intl.NumberFormat('ru-RU', {
+  style: 'currency',
+  currency: 'RUB',
+});
 const price = fmt.format(value);
 ```
 
-## Performance and Optimization
+---
 
-- Minimize resource usage and avoid memory leaks
-- Implement proper caching mechanisms
-- Handle asynchronous operations efficiently
+# Performance & Optimization
 
-## Security and Privacy
+* Избегай полной материализации больших коллекций, когда достаточно ленивых итераторов.
+* Используй Iterator Helpers и операции над `Set`, если они дают выигрыш в читаемости и не вредят производительности.
+* Следи за отсутствием утечек памяти: не держи лишние ссылки на большие структуры.
+* Кешируй тяжёлые вычисления и сетевые запросы, если они многократно переиспользуются.
+* Эффективно обрабатывай асинхронные операции:
 
-- Prevent XSS and injection attacks
-- Follow security best practices
+    * не создавай лишних `await` в цепочках;
+    * по возможности выполняй независимые задачи параллельно (`Promise.all`).
 
-## Консоль логи
+---
 
-- Если у тебя есть сомнения в выборе варианта или причине бага, то пропиши консоль логи, на основе которых ты точно смог
-  бы решить эту проблему. И я предоставлю тебе результат их вывода.
-  При этом, консоль-логи добавляй не в закомментированном, а в работающем виде. Позже я их удалю. При написании
-  console.log помни что в браузерном терминале объекты из консоли копируются в виде строки такого вида: "{...}". Так что
-  либо для вывода данных в виде объектов используй какой-нибудь JSON-сериализатор, либо выводи данные в виде строк.
+# Security
 
-## Code Style Guidelines
+* Не доверяй входным данным.
+* Избегай прямого использования непроверенного HTML.
+* Учитывай XSS и инъекции при работе со строками и внешними источниками.
+* Следи за тем, чтобы в коде не появлялись очевидные места для SQL/NoSQL-инъекций и небезопасной сериализации.
 
-- Use early returns whenever possible to make the code more readable.
-- Event functions should be named with a “handle” prefix, like “handleClick” for onClick and “handleKeyDown” for
-  onKeyDown.
-- Use descriptive variable names (e.g., isLoading, hasPermission)
-- Используй тернарные операторы (но не вложенные) вместо if-else.
-- Пиши стрелочные функции, и желательно без скобок.
-- Вместо циклов for используй, по мере возможностей, конструкции в функциональном стиле (если это не создает
-  плохочитаемого кода). Например методы массивов, Iterator Helpers, новые методы объекта Set (intersection, union и так
-  далее)
+---
 
-## Избегание проблем
+# Console Logs (Debugging)
 
-- При создании стрелочных функций помни об их поведении с hoisting 
+Если есть сомнения в причине бага — **добавляй рабочие `console.log`**, которые реально помогут разобраться:
 
+* Логируй **ключевые входные данные и промежуточные состояния**.
+* Помни, что в браузерной консоли объекты при копировании могут превращаться в строку вида `"{}"` / `"{...}"`.
+  Чтобы удобно копировать данные в текстовом виде, используй сериализацию:
+
+```js
+console.log('payload:', JSON.stringify(payload, null, 2));
+```
+
+Позже логи можно удалить, но на момент диагностики они должны быть **рабочими**, а не закомментированными.
+
+---
+
+# Code Style Guidelines
+
+* Используй **ранние `return`**, чтобы избегать лишней вложенности.
+* Обработчики событий называй с префиксом `handle`:
+
+    * `handleClick`, `handleKeyDown`, `handleSubmit` и т.п.
+* Используй **говорящие имена**: `isLoading`, `hasPermission`, `hasError`, `itemsById`.
+* Предпочитай **тернарный оператор** вместо `if/else`, если это не создаёт вложенных тернарников
+  и код остаётся читаемым.
+* Предпочитай **функциональный стиль**:
+
+    * `map`, `filter`, `reduce`, `flatMap`, `some`, `every`;
+    * Iterator Helpers;
+    * операции над `Set`.
+* По возможности избегай `let`: стремись формулировать код так, чтобы использовать `const`
+  (особенно для аккумуляторов через `reduce` и итераторы).
+* Пиши **стрелочные функции**, по возможности без скобок вокруг единственного аргумента.
+* Помни про hoisting: стрелочные функции **не поднимаются**, не используй их до объявления.
+
+---
+
+# Avoiding Problems
+
+* Не смешивай логические операции и побочные эффекты (особенно с `&&=` и `||=`).
+* Не мутируй аргументы функций без крайней необходимости.
+* Не оборачивай уже готовые итераторы в `Iterator.from`.
+* Следи за единообразием обработки sync/async путей (предпочитай `Promise.try` там, где это уместно).
+* Избегай избыточных промежуточных массивов, если можно обойтись ленивыми итераторами.
 
