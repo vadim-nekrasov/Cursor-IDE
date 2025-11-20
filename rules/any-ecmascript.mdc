@@ -131,6 +131,15 @@ const it = Iterator.from(maybeIterableOrIterator);
 ## Фильтрация, маппинг и ограничение
 
 ```js
+// ❌ Не нужно оборачивать готовые итераторы массивов
+// Плохо
+Iterator.from(Array(n).keys()).map(i => i + 1).toArray();
+
+// ✅ Хорошо — в ES2025 встроенные итераторы наследуют Iterator Helpers
+Array(n).keys().map(i => i + 1).toArray();
+```
+
+```js
 // ❌ Плохо — ручные циклы
 function* naturals() { let i = 1; while (true) yield i++; }
 const it = naturals();
