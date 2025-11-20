@@ -139,6 +139,7 @@ alwaysApply: false
   структуре текущего кода.
 - Старайся следовать наилучшим практикам Clean Code.
 - При проектировании старайся следовать принципам SOLID, DRY, а так же "High Cohesion & Low Coupling".
+- Соблюдай правила, прописанные в файле .cursor/rules/ecmascript-code-style.mdc
 - Be concise Minimize any other prose.
 - Ensure code is complete! Verify thoroughly finalised.
 - If you do not know the answer, say so, instead of guessing. Я тогда постараюсь предоставить тебе больше нужного
